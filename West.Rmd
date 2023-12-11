@@ -1,0 +1,367 @@
+---
+title: 'West'
+output:
+  distill::distill_article:
+    toc:false:
+      theme: theme.css
+---
+
+```{r required-packages, include = FALSE}
+# For Analysis
+library(readxl)
+library(tidyverse)
+library(doParallel)
+library(R.utils)
+library(gridExtra)
+library(nlme)
+library(viridis)
+
+
+# For AQ_datadic and datadictionary
+library(reactable)
+library(htmltools)
+
+# AQanalysis
+library(lmtest)
+library(ggplot2)
+
+# For website
+library(distill)
+
+# For everyone
+options(digits = 7)
+registerDoParallel()
+getDoParWorkers()
+```
+
+
+```{r reading_data, include = FALSE}
+# census_detail
+west_cd <- read_excel("data/Copy of nbhd_West Dallas_v9.xlsx", sheet = "census_detail")
+# census_hh_inc
+west_chi <- read_excel("data/Copy of nbhd_West Dallas_v9.xlsx", sheet = "census_hh_inc")
+# land_use_by_year
+west_lu <- read_excel("data/Copy of nbhd_West Dallas_v9.xlsx", sheet = "land_use_by_year")
+# unit_counts_by_type
+west_uc <- read_excel("data/Copy of nbhd_West Dallas_v9.xlsx", sheet = "unit_counts_by_type")
+# median_sales_mls
+west_msm <- read_excel("data/Copy of nbhd_West Dallas_v9.xlsx", sheet = "median_sales_mls")
+```
+
+
+## Title TBD {-}
+
+Caption TBD
+
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=11.5,fig.height=5, layout="l-body-outset"}
+west_cd$minority_pop <- west_cd$hispanic_pct + west_cd$black_pct
+west_cd_vis <- west_cd %>%
+  dplyr::select(white_pct, black_pct, minority_pop, hispanic_pct, asian_pct, amindian_pct, year...2) %>%
+  gather(key = "variable", value = "value", -year...2) %>%
+  mutate(variable = recode(variable, 'black_pct' = 'Black', 'white_pct' = 'White', 
+                       'hispanic_pct' = 'Hispanic', 'asian_pct' = 'Asian', 'amindian_pct' = 'American Indian',
+                       'minority_pop' = 'Minority Population'))
+
+
+ggplot(west_cd_vis, aes(x = year...2, y = value, group=variable,colour=variable) ) + 
+  geom_line(aes(color = variable), lwd = 1.5, linetype = "dashed") + 
+  geom_point(lwd=3.5) +
+  ylab("Percentage") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="plasma") +
+  ggtitle("Population distribution by racial groups in the previous 40 years")
+```
+
+
+
+## Title TBD {-}
+
+Caption TBD
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=13,fig.height=7, layout="l-body-outset"}
+west_cd_vis <- west_cd %>%
+  dplyr::select(total_households, owner_occupied, renter_occupied, poverty_rate, total_population, median_income_inflated_adj, year...2) %>%
+  gather(key = "variable", value = "value", -year...2) %>%
+  mutate(variable = recode(variable, 'poverty_rate' = 'Poverty Rate', 'total_population' = 'Total Population', 
+                       'renter_occupied' = 'Renter Occupied', 'median_income_inflated_adj' = 'Median Income',
+                       'total_households' = 'Total Households', 'owner_occupied' = 'Owner Occupied'))
+
+
+west_cd_vis <- <- 
+ggplot(west_cd_vis, aes(x=year...2, y=value, group = 1))+
+  geom_line(aes(color = variable), lwd = 1.5, linetype = "dashed")+
+  geom_point(aes(color=variable), lwd=3.5) +
+  facet_wrap(~variable, scales="free_y") +
+  ylab("Value") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="turbo") +
+  ggtitle("Demographic distribution in the previous 40 years") +
+  theme(legend.position="none")
+
+```
+
+
+## Title TBD {-}
+
+Caption TBD
+
+```{r}
+
+west_cd_sub <- west_cd %>% dplyr::select(median_gross_rent_adj,inflation,year...2)
+
+
+z_std <- function(observed) {
+  #result <- (observed-observed[1])/(observed[1])*100
+  result <- (observed)/sum(observed[1:4])*100
+}
+
+west_cd_sub <- west_cd %>% 
+  select_if(is.numeric) %>% 
+  mutate_all(funs(perc_ = z_std(.)))
+```
+
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=13,fig.height=7, layout="l-body-outset"}
+west_cd$inflation <- c(0.124, 0.054, 0.034, 0.0316, 0.083)
+west_cd$median_gross_rent_adj_inflation_adjusted <- west_cd$median_gross_rent_adj - west_cd$median_gross_rent_adj*west_cd$inflation
+  
+west_cd_vis <- west_cd %>%
+  dplyr::select(renter_occupied, household_size, total_households, median_home_value_adj, median_gross_rent_adj, owner_occupied, year...2) %>%
+  gather(key = "variable", value = "value", -year...2) %>%
+  mutate(variable = recode(variable, 'household_size' = 'Household Size', 'total_households' = 'Total Households', 
+                       'renter_occupied' = 'Renter Occupied', 'median_home_value_adj' = 'Median Home Value',
+                       'median_gross_rent_adj' = 'Median Gross rent', 'owner_occupied' = 'Owner Occupied'))
+
+
+
+west_cd_vis
+ggplot(west_cd_vis, aes(x=year...2, y=value, group = 1))+
+  geom_line(aes(color = variable), lwd = 1.5, linetype = "dashed")+
+  geom_point(aes(color=variable), lwd=3.5)+
+  facet_wrap(~variable, scales="free_y") +
+  ylab("Value") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="turbo") +
+  ggtitle("Demographic distribution in the previous 40 years") +
+  theme(legend.position="none")
+
+```
+                   
+## Title TBD {-}
+
+Caption TBD
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=13,fig.height=7, layout="l-body-outset"}
+west_cd_vis <- west_cd %>%
+  dplyr::select(cost_burdened_units , cost_burdened_owner_units, severely_cost_burdened_units , severely_cost_burdened_owner_units, year...2) %>%
+  gather(key = "variable", value = "value", -year...2) %>%
+  mutate(variable = recode(variable, 'cost_burdened_units' = 'Cost Burdened Units',
+                                     'cost_burdened_owner_units' = 'Cost Burdened Owner Units',
+                                      'severely_cost_burdened_units' = 'Severely Cost Burdened Units',
+                                       'severely_cost_burdened_owner_units' = 'Severely Cost Burdened Owner Units'))
+
+
+
+ggplot(west_cd_vis, aes(x=year...2, y=value, group = 1))+
+  geom_line(aes(color = variable), lwd = 1.5, linetype = "dashed")+
+  geom_point(aes(color=variable), lwd=3.5)+
+  facet_wrap(~variable, scales="free_y") +
+  ylab("Value") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="turbo") +
+  ggtitle("Demographic distribution in the previous 40 years") +
+  theme(legend.position="none")
+
+```
+## Title TBD {-}
+
+Caption TBD
+
+```{r include=FALSE}
+west_chi_sub <- west_chi %>% replace(is.na(.), 0)
+viz_func <- function(white, black, asian, hispanic, title){
+  p <- ggplot(west_chi_sub, aes(x=`year`, group = 1))   + 
+  geom_line(aes(y = white), color="red", lwd = 1.5, linetype = "dashed") +
+  geom_point(aes(y = white), color="red", lwd=3.5)+
+  geom_line(aes(y = black), color="blue", lwd = 1.5, linetype = "dashed") +
+  geom_point(aes(y = black), color="blue", lwd=3.5)+
+  geom_line(aes(y = asian), color="orange", lwd = 1.5, linetype = "dashed") +
+  geom_point(aes(y = asian), color="orange", lwd=3.5)+  
+  geom_line(aes(y = hispanic), color="purple", lwd = 1.5, linetype = "dashed") +
+  geom_point(aes(y = hispanic), color="purple", lwd=3.5)+
+  ylab("Count") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = FALSE) +
+  ggtitle(title) +
+  scale_color_manual(name='Legends',
+                     breaks=c('Black', 'White', 'Hispanic', 'Asian'),
+                     values=c("White" = "red", "Black" = "blue", "Asian" = "orange", "Hispanic" = "purple")) + 
+  theme(
+    legend.position = c(0.5, 0.5),
+    legend.justification = c("left", "top"), 
+    legend.box.just = "left",
+    legend.margin = margin(6, 6, 6, 6))
+  return(p)
+}
+```
+
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=20,fig.height=20, layout="l-body-outset"}
+# Plot 1 - under $5000
+p1 <- viz_func(west_chi_sub$income_under_5000_white, west_chi_sub$income_under_5000_black,
+               west_chi_sub$income_under_5000_asian, west_chi_sub$income_under_5000_hispanic, "Income Under $5000") 
+
+# Plot 2 - $5000 to $7500
+p2 <- viz_func(west_chi_sub$income_5000_7500_white, west_chi_sub$income_5000_7500_black,
+               west_chi_sub$income_5000_7500_asian, west_chi_sub$income_5000_7500_hispanic, "Income between $5000 to $7500") 
+  
+# Plot 3 - $7500 to $10000
+p3 <- viz_func(west_chi_sub$income_7500_10000_white, west_chi_sub$income_7500_10000_black,
+               west_chi_sub$income_7500_10000_asian, west_chi_sub$income_7500_10000_hispanic, "Income between $7500 to $10000") 
+  
+# Plot 4 - $10000 to $15000
+p4 <- viz_func(west_chi_sub$income_10000_15000_white, west_chi_sub$income_10000_15000_black,
+               west_chi_sub$income_10000_15000_asian, west_chi_sub$income_10000_15000_hispanic, "Income between $10000 to $15000") 
+
+# Plot 5 - $15000 to $20000
+p5 <- viz_func(west_chi_sub$income_15000_20000_white, west_chi_sub$income_15000_20000_black,
+               west_chi_sub$income_15000_20000_asian, west_chi_sub$income_15000_20000_hispanic, "Income between $15000 to $20000") 
+
+# Plot 6 - $20000 to $25000
+p6 <- viz_func(west_chi_sub$income_20000_25000_white, west_chi_sub$income_20000_25000_black,
+               west_chi_sub$income_20000_25000_asian, west_chi_sub$income_20000_25000_hispanic, "Income between $20000 to $25000") 
+
+# Plot 7 - $25000 to $35000
+p7 <- viz_func(west_chi_sub$income_25000_35000_white, west_chi_sub$income_25000_35000_black,
+               west_chi_sub$income_25000_35000_asian, west_chi_sub$income_25000_35000_hispanic, "Income between $25000 to $35000") 
+
+# Plot 8 - $35000 to $50000
+p8 <- viz_func(west_chi_sub$income_35000_50000_white, west_chi_sub$income_35000_50000_black,
+               west_chi_sub$income_35000_50000_asian, west_chi_sub$income_35000_50000_hispanic, "Income between $35000 to $50000") 
+
+# Plot 9 - $25000 to $35000
+p9 <- viz_func(west_chi_sub$income_50000_or_more_white, west_chi_sub$income_50000_or_more_black,
+               west_chi_sub$income_50000_or_more_asian, west_chi_sub$income_50000_or_more_hispanic, "Income between $50000 or more") 
+
+
+# income_35000_50000_white, income_50000_or_more_white
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, ncol=3, nrow=4)
+```
+## Title TBD {-}
+
+Caption TBD
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=12,fig.height=7, layout="l-body-outset"}
+west_lu_sub <- west_lu %>% dplyr::select(year, land_use, total_area_sqft)
+
+west_lu_sub <- west_lu_sub %>% group_by(year) %>%
+            summarize(Percentage = total_area_sqft / sum(total_area_sqft) * 100,
+                      Land_Use = land_use)
+
+ggplot(west_lu_sub, aes(x = year, y = Percentage, group=Land_Use,colour=Land_Use) ) + 
+  geom_line(aes(color = Land_Use), lwd = 1.5, linetype = "dashed") + 
+  geom_point(aes(color=Land_Use), lwd=3.5)+
+  ylab("Percentage") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="plasma") +
+  ggtitle("Land Use distribution in the previous 20 years") + 
+  labs(color='Land Use') 
+
+```
+
+## Title TBD {-}
+
+Caption TBD
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=12,fig.height=10, layout="l-body-outset"}
+west_uc_sub <- west_uc %>% dplyr::select(appraisal_yr, total_duplex_units, total_single_family_home_units, total_townhomes_units, total_apartment_units, total_all_units) %>%  replace(is.na(.), 0)
+
+
+viz_func2 <- function(dataset, x_data, y_data, linecolor, title){
+  p <- ggplot(dataset, aes(x = x_data, group = 1))   + 
+  geom_line(aes(y = y_data), color=linecolor, lwd = 1.5, linetype = "dashed")+
+  geom_point(aes(y = y_data), color=linecolor, lwd=3.5)+
+  ylab("Units") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = FALSE) +
+  ggtitle(title)
+  return(p)
+}
+
+
+p1 <- viz_func2(west_uc_sub, west_uc_sub$appraisal_yr, west_uc_sub$total_duplex_units, "red", "Total Duplex Units")
+p2 <- viz_func2(west_uc_sub, west_uc_sub$appraisal_yr, west_uc_sub$total_single_family_home_units, "orange", "Total Single Family Home Units")
+p3 <- viz_func2(west_uc_sub, west_uc_sub$appraisal_yr, west_uc_sub$total_townhomes_units, "purple", "Total Townhouse Units")
+p4 <- viz_func2(west_uc_sub, west_uc_sub$appraisal_yr, west_uc_sub$total_apartment_units, "blue", "Total Apartment Units")
+p5 <- viz_func2(west_uc_sub, west_uc_sub$appraisal_yr, west_uc_sub$total_all_units, "green", "Total Units")
+p5
+
+grid.arrange(p1, p2, p3, p4, p5, ncol=2, nrow=3)
+```
+
+
+## Title TBD {-}
+
+Caption TBD
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=13,fig.height=7, layout="l-body-outset"}
+west_cd_vis <- west_cd %>%
+  dplyr::select(total_population, percent_seniors, percent_foreign_born, median_income_inflated_adj, poverty_rate, median_gross_rent_adj, year...2) %>%
+  gather(key = "variable", value = "value", -year...2) %>%
+  mutate(variable = recode(variable, 'total_population' = 'Total Population',
+                          'percent_seniors' = 'Seniors %',
+                          'percent_foreign_born' = 'Foreign Born %', 
+                          'median_income_inflated_adj' = 'Median Income', 
+                          'poverty_rate' = 'Poverty Rate',
+                          'median_gross_rent_adj' = 'Median Rent'))
+
+
+ggplot(west_cd_vis, aes(x=year...2, y=value, group = 1))+
+  geom_line(aes(color = variable), lwd = 1.5, linetype = "dashed")+
+  geom_point(aes(color=variable), lwd=3.5)+
+  facet_wrap(~variable, scales="free_y") +
+  ylab("Value") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="turbo") +
+  ggtitle("Demographic distribution in the previous 40 years") +
+  theme(legend.position="none")
+
+```
+## Title TBD {-}
+
+Caption TBD
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, fig.width=13,fig.height=15, layout="l-body-outset"}
+west_cd_vis <- west_msm %>%
+  dplyr::select(total_sales, median_close_price, median_ppsf, median_list_to_sale, list_to_sale_ratio_over_110, new_construction_count, median_year_built, sales_year) %>%
+  gather(key = "variable", value = "value", -sales_year) %>%
+  mutate(variable = recode(variable, 'total_sales' = 'Total Sales',
+                          'median_close_price' = 'Median Close Price',
+                          'median_ppsf' = 'Price Per Square Feet', 
+                          'median_list_to_sale' = 'Median List to Sale', 
+                          'list_to_sale_ratio_over_110' = 'List to Sale Ratio over 110',
+                          'new_construction_count' = 'New Construction Count',
+                          'median_year_built' = 'Median Year Built'))
+
+
+ggplot(west_cd_vis, aes(x=sales_year, y=value, group = 1))+
+  geom_line(aes(color = variable), lwd = 1.5, linetype = "dashed")+
+  geom_point(aes(color=variable), lwd=3.5)+
+  facet_wrap(~variable, scales="free_y", ncol = 2) +
+  ylab("Value") +
+  xlab("Year") + 
+  scale_color_viridis(discrete = TRUE, option="turbo") +
+  ggtitle("House Sale distribution in the previous 20 years")+
+  theme(legend.position="none") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+```
+
+
+
+
+
